@@ -2,7 +2,13 @@
   <img src="resources/abaka-ai.png" width="100%"/>
   <div>&nbsp;</div>
   <div align="center">
-    <span><font size="150">ABAVA website</font></span>
+    <span><font size="150">ABAKA website</font></span>
+    <sup>
+      <a href="https://www.abaka.ai/">
+        <i><font size="5">HOT</font></i>
+      </a>
+    </sup>
+<span><font size="150">ABAKA website-CN</font></span>
     <sup>
       <a href="https://www.abaka.ai/">
         <i><font size="5">HOT</font></i>

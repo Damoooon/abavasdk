@@ -74,13 +74,13 @@ class CocoProcess(PostProcess):
             merged_categories_dict = {item['name']: self.abava2dict(item) for item in merged_categories}
             categories_dict = {item['name']: self.abava2dict(item) for item in categories}
             for k in categories_dict:
-                categories_dict[k]['source'] = "b"
+                categories_dict[k]['source'] = "temp"
             merged_categories_dict.update(categories_dict)
 
             id_mapping = {}
 
             for i, item in enumerate(merged_categories_dict.values()):
-                if item.get('source') == "b":
+                if item.get('source') == "temp":
                     old_id = item['id']
                     item['id'] = i
                     id_mapping[old_id] = i
