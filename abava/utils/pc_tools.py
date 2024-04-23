@@ -170,11 +170,11 @@ def pcd2bin(pcd_path, out_path):
     data.tofile(out_path)
 
 
-def bin2pcd(bin_path, pcd_path, head=None):
+def bin2pcd(bin_path, pcd_path, head=None, data_mode='asscii'):
     """
     Convert point cloud bin format to pcd format
     :param bin_path: bin file path
-    :param pcd_folder: pcd folder path
+    :param pcd_path: pcd file path
     :param head: {
         "FIELDS": ["x", "y", "z", "intensity"],
         "SIZE": ["4", "4", "4", "4"],
@@ -182,11 +182,6 @@ def bin2pcd(bin_path, pcd_path, head=None):
         "COUNT": ["1", "1", "1", "1"] }
     :return: pcd file
     """
-    try:
-        if not (os.path.isdir(pcd_path)):
-            os.makedirs(os.path.join(pcd_path))
-    except OSError as e:
-        raise
 
     if head is None:
         head = {
@@ -196,16 +191,12 @@ def bin2pcd(bin_path, pcd_path, head=None):
             "COUNT": ["1", "1", "1", "1"]
         }
 
-    print("Converting Start!")
     points = np.fromfile(bin_path, dtype="float32").reshape((-1, len(head['FIELDS'])))
-    write_pcd(points, pcd_path, head)
+    write_pcd(points, pcd_path, head, data_mode)
 
 
 def pcd_ascii2binary(input_file, output_file):
-    start = time.time()
     point_data, headers = read_pcd(input_file)
-    end = time.time()
-    print('read time:', end - start)
     head = {
         "FIELDS": headers['FIELDS'],
         "SIZE": headers['SIZE'],
@@ -261,7 +252,7 @@ def filter_points_in_boxes(pcd_file, boxes_list):
     return filtered_point
 
 
-def voxel_subsample_keep_intensity(pcd_path, intensity, voxel_size, output_path='./subsampled.pcd'):
+def voxel_subsample_keep_intensity(pcd_path, voxel_size, intensity=None, output_path='./subsampled.pcd'):
     """
     Retain points within the intensity information threshold and downsample the remaining points based on voxels
     :param pcd_path: pcd format point cloud path
@@ -272,12 +263,18 @@ def voxel_subsample_keep_intensity(pcd_path, intensity, voxel_size, output_path=
     """
     pc_points, headers = read_pcd(pcd_path)[:, :4]
     # We default the first four columns of the point cloud to x, y, z, intensity
-    points_intensity = pc_points[(pc_points[:, 3] >= intensity[0]) & (pc_points[:, 3] <= intensity[1])]
-    points_other = pc_points[(pc_points[:, 3] < intensity[0]) | (pc_points[:, 3] > intensity[1])]
-    voxel_coords = np.floor(points_other[:, 0:3] / voxel_size).astype(np.int32)
-    voxel_indices = np.unique(voxel_coords, axis=0, return_index=True)[1]
-    downsampled_points_other = points_other[voxel_indices]
-    final_points = np.concatenate((points_intensity, downsampled_points_other), axis=0)
+    if intensity:
+        points_intensity = pc_points[(pc_points[:, 3] >= intensity[0]) & (pc_points[:, 3] <= intensity[1])]
+        points_other = pc_points[(pc_points[:, 3] < intensity[0]) | (pc_points[:, 3] > intensity[1])]
+        voxel_coords = np.floor(points_other[:, 0:3] / voxel_size).astype(np.int32)
+        voxel_indices = np.unique(voxel_coords, axis=0, return_index=True)[1]
+        downsampled_points_other = points_other[voxel_indices]
+        final_points = np.concatenate((points_intensity, downsampled_points_other), axis=0)
+    else:
+        voxel_coords = np.floor(pc_points[:, 0:3] / voxel_size).astype(np.int32)
+        voxel_indices = np.unique(voxel_coords, axis=0, return_index=True)[1]
+        final_points = pc_points[voxel_indices]
+
     head = {
         "FIELDS": headers['FIELDS'],
         "SIZE": headers['SIZE'],
@@ -287,7 +284,7 @@ def voxel_subsample_keep_intensity(pcd_path, intensity, voxel_size, output_path=
     write_pcd(final_points, output_path, head)
 
 
-def random_subsample_keep_intensity(pcd_path, intensity, sampling_ratio, output_path='./subsampled.pcd'):
+def random_subsample_keep_intensity(pcd_path, sampling_ratio, intensity, output_path='./subsampled.pcd'):
     """
     Retain points within the intensity information threshold and randomly downsample the remaining points
     :param pcd_path: pcd format point cloud path
@@ -297,13 +294,20 @@ def random_subsample_keep_intensity(pcd_path, intensity, sampling_ratio, output_
     :return:
     """
     pc_points, headers = read_pcd(pcd_path)[:, :4]
-    points_intensity_20_200 = pc_points[(pc_points[:, 3] >= intensity[0]) & (pc_points[:, 3] <= intensity[1])]
-    points_other = pc_points[(pc_points[:, 3] < intensity[0]) | (pc_points[:, 3] > intensity[1])]
-    num_points = points_other.shape[0]
-    num_sampled_points = int(sampling_ratio * num_points)
-    sampled_indices = np.random.choice(num_points, num_sampled_points, replace=False)
-    downsampled_points_other = points_other[sampled_indices]
-    final_points = np.concatenate((points_intensity_20_200, downsampled_points_other), axis=0)
+    if intensity:
+        points_intensity_20_200 = pc_points[(pc_points[:, 3] >= intensity[0]) & (pc_points[:, 3] <= intensity[1])]
+        points_other = pc_points[(pc_points[:, 3] < intensity[0]) | (pc_points[:, 3] > intensity[1])]
+        num_points = points_other.shape[0]
+        num_sampled_points = int(sampling_ratio * num_points)
+        sampled_indices = np.random.choice(num_points, num_sampled_points, replace=False)
+        downsampled_points_other = points_other[sampled_indices]
+        final_points = np.concatenate((points_intensity_20_200, downsampled_points_other), axis=0)
+    else:
+        num_points = pc_points.shape[0]
+        num_sampled_points = int(sampling_ratio * num_points)
+        sampled_indices = np.random.choice(num_points, num_sampled_points, replace=False)
+        final_points = pc_points[sampled_indices]
+
     head = {
         "FIELDS": headers['FIELDS'],
         "SIZE": headers['SIZE'],

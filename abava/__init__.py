@@ -174,5 +174,5 @@ class PostProcess(object):
         cls.postprocess_f.post_process_product(data_path, out_pat).split(test_size, train_size, shuffle)
 
     @classmethod
-    def coco_merge(cls, data_path, out_pat=None):
-        cls.postprocess_f.post_process_product(data_path, out_pat).split()
+    def coco_merge(cls, data_path, out_pat=None, merged_file_name=None):
+        cls.postprocess_f.post_process_product(data_path, out_pat).merge(merged_file_name)

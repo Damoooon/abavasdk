@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="resources/ABAKA-AI-logo.png" width="600"/>
+  <img src="resources/abaka-ai.png" width="100%"/>
   <div>&nbsp;</div>
   <div align="center">
     <span><font size="150">ABAVA website</font></span>

@@ -21,5 +21,5 @@ mapping = {"背景": (100, 100, 100), "草坪": (200, 200, 200),"路": (300, 300
 
 # plate-mode mask
 out_path = "./output"
-Export.p_mask_plus(source_data, out_path)
+Export.p_mask(source_data, out_path)
 

@@ -45,7 +45,6 @@ class PostProcess():
         else:
             out_root = join(self.out_path, file_path)
 
-        print(out_root)
         if not os.path.exists(out_root):
             os.makedirs(out_root)
         with open(join(out_root, filename), 'w', encoding='utf-8') as write_f:

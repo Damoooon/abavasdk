@@ -49,8 +49,8 @@ class ExportMask(ExportData):
         for i in tqdm(range(len(mask_data))):
             url = mask_data[i]['info']
             try:
-                height = i.info.info.size.height
-                width = i.info.info.size.width
+                height = mask_data[i]['size']['height']
+                width = mask_data[i]['size']['width']
             except:
                 height, width = cv_tools.get_urlimage_size(url)
             img = np.zeros((height * 2, width * 2, 3), np.uint8)

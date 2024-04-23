@@ -10,7 +10,6 @@ from ..process import PostProcess
 from ...utils import load_json
 from ...abava_data import ABAVA
 from ...export_format.coco.coco import COCO
-# from .coco import COCO
 from datetime import datetime
 
 
@@ -27,51 +26,42 @@ class CocoProcess(PostProcess):
         }
 
     def split(self, test_size=0.3, train_size=None, shuffle=True):
+        def process_data(image_list, mode):
+            annotations = []
+            for image in tqdm(image_list):
+                id = image.id
+                selected_annotations = [item for item in coco_data.annotations if item['image_id'] == id]
+                annotations.extend(selected_annotations)
+            COCO.images = sorted(image_list, key=lambda item: item['id'])
+            sorted_annotations = sorted(annotations, key=lambda item: item['image_id'])
+            COCO.annotations = [{**self.abava2dict(item), 'id': idx + 1} for idx, item in
+                                enumerate(sorted_annotations)]
+            COCO.categories = coco_data.categories
+            file_name = Path(self.data_path).parts[-1].replace('.json', f'_{mode}.json')
+            self.save_labels(self.abava2dict(COCO), 'split', file_name)
+
         if train_size is None:
             train_size = 1 - test_size
 
         coco_data = ABAVA(load_json(self.data_path))
-        train_annotations = []
-        test_annotations = []
 
         if shuffle:
             random.shuffle(coco_data.images)
 
         test_images = coco_data.images[:int(len(coco_data.images) * test_size)]
-        for image in tqdm(test_images):
-            test_id = image.id
-            test_selected_annotations = [item for item in coco_data.annotations if item['image_id'] == test_id]
-            test_annotations.extend(test_selected_annotations)
-        COCO.images = sorted(test_images, key=lambda item: item['id'])
-        sorted_test_annotations = sorted(test_annotations, key=lambda item: item['image_id'])
-        COCO.annotations = [{**self.abava2dict(item), 'id': idx + 1} for idx, item in enumerate(sorted_test_annotations)]
-        test_file_name = Path(self.data_path).parts[-1].replace('.json', '_test.json')
-        self.save_labels(self.abava2dict(COCO), 'split', test_file_name)
-
-        train_images = coco_data.images[int(len(coco_data.images) * test_size):int(len(coco_data.images) * (test_size + train_size))]
-        for image in tqdm(train_images):
-            train_id = image.id
-            train_selected_annotations = [item for item in coco_data.annotations if item['image_id'] == train_id]
-            train_annotations.extend(train_selected_annotations)
-        COCO.images = sorted(train_images, key=lambda x: x['id'])
-        sorted_train_annotations = sorted(train_annotations, key=lambda x: x['image_id'])
-        COCO.annotations = [{**self.abava2dict(item), 'id': idx + 1} for idx, item in enumerate(sorted_train_annotations)]
-        train_file_name = Path(self.data_path).parts[-1].replace('.json', '_train.json')
-        self.save_labels(self.abava2dict(COCO), 'split', train_file_name)
-
+        train_images = coco_data.images[
+                       int(len(coco_data.images) * test_size):int(len(coco_data.images) * (test_size + train_size))]
         eval_images = coco_data.images[int(len(coco_data.images) * (test_size + train_size)):]
-        if len(eval_images) > 0:
-            eval_annotations = [item for item in coco_data.annotations if
-                                item not in test_annotations and item not in train_annotations]
-            sorted_eval_annotations = sorted(eval_annotations, key=lambda x: x['image_id'])
-            COCO.images = sorted(eval_images, key=lambda x: x['id'])
-            COCO.annotations = [{**self.abava2dict(item), 'id': idx + 1} for idx, item in enumerate(sorted_eval_annotations)]
-            eval_file_name = Path(self.data_path).parts[-1].replace('.json', '_val.json')
-            self.save_labels(self.abava2dict(COCO), 'split', eval_file_name)
 
-    def merge(self):
+        process_data(test_images, 'test')
+        process_data(train_images, 'train')
+        if len(eval_images) > 0:
+            process_data(eval_images, 'eval')
+
+    def merge(self, merged_file_name=None):
         merged_images = []
         merged_annotations = []
+        merged_categories = []
         coco_paths = glob.glob(self.data_path + '/*')
         for coco_path in coco_paths:
             coco_data = ABAVA(load_json(coco_path))
@@ -79,14 +69,38 @@ class CocoProcess(PostProcess):
             images_id = [item['id'] for item in coco_data.images]
             mapping = {id: i + 1 + image_length for i, id in enumerate(images_id)}
             merged_images.extend([{**self.abava2dict(item), 'id': mapping[item['id']]} for item in coco_data.images])
-            merged_annotations.extend([{**self.abava2dict(item), 'image_id': mapping[item['image_id']]} for item in coco_data.annotations])
+            categories = coco_data.categories
+
+            merged_categories_dict = {item['name']: self.abava2dict(item) for item in merged_categories}
+            categories_dict = {item['name']: self.abava2dict(item) for item in categories}
+            for k in categories_dict:
+                categories_dict[k]['source'] = "b"
+            merged_categories_dict.update(categories_dict)
+
+            id_mapping = {}
+
+            for i, item in enumerate(merged_categories_dict.values()):
+                if item.get('source') == "b":
+                    old_id = item['id']
+                    item['id'] = i
+                    id_mapping[old_id] = i
+            merged_categories = list(merged_categories_dict.values())
+            merged_annotations.extend(
+                [{**self.abava2dict(item), 'image_id': mapping[item['image_id']],
+                  'category_id': id_mapping[item['category_id']]} for item in coco_data.annotations])
+
+        for item in merged_categories:
+            if 'source' in item:
+                del item['source']
 
         sorted_merged_images = sorted(merged_images, key=lambda item: item['id'])
         sorted_merged_annotations = sorted(merged_annotations, key=lambda item: item['image_id'])
+        sorted_merged_categories = sorted(merged_categories, key=lambda item: item['id'])
 
         COCO.images = sorted_merged_images
         COCO.annotations = sorted_merged_annotations
+        COCO.categories = sorted_merged_categories
 
-        merged_file_name = 'merged_data.json'
-        self.save_labels(self.abava2dict(COCO), 'merge', merged_file_name)
-
+        if merged_file_name is None:
+            merged_file_name = 'merged_data'
+        self.save_labels(self.abava2dict(COCO), 'merge', merged_file_name + '.json')
