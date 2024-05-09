@@ -2,13 +2,12 @@
 import math
 import re
 import struct
-import time
 
 import cv2
+import lzf
 import numpy as np
-import os
 import dask.dataframe as dd
-from ..exception import AbavaParameterException, AbavaNotImplementException
+from ..exception import AbavaNotImplementException
 
 
 def read_pcd(pcd_path):
@@ -17,7 +16,7 @@ def read_pcd(pcd_path):
     :param pcd_path:
     :return:
     """
-    global pc_points
+    # global pc_points
     headers_lines = 11
     try:
         with open(pcd_path, 'r') as f:
@@ -41,24 +40,24 @@ def read_pcd(pcd_path):
             else:
                 headers[key] = fields[1:]
 
-    type_size_map = {('U', '1'): np.uint8, ('U', '2'): np.uint16, ('U', '4'): np.uint32,
-                     ('F', '4'): np.float32,
+    type_size_map = {('U', '1'): np.uint8, ('U', '2'): np.uint16, ('U', '4'): np.uint32, ('U', '8'): np.uint64,
+                     ('F', '4'): np.float32, ('F', '8'): np.float64,
                      ('I', '1'): np.int8, ('I', '2'): np.int16, ('I', '4'): np.int32}
+
+    dtype_list = [(name, type_size_map[(field_type, size)]) for name, field_type, size in
+                  zip(headers["FIELDS"], headers['TYPE'], headers["SIZE"])]
+    dt = np.dtype(dtype_list)
 
     num_fields = len(headers['FIELDS'])
     if headers['DATA'] == 'ascii':
-        dtypes = {idx: type_size_map[(type, headers['SIZE'][idx])] for idx, type in enumerate(headers['TYPE'])}
         df = dd.read_csv(pcd_path, skiprows=headers['data_start'], sep=" ", header=None, assume_missing=True,
-                         dtype=dtypes)
+                         dtype=dt)
         pc_points = df.to_dask_array(lengths=True).reshape((-1, num_fields)).compute()
 
     elif headers['DATA'] == 'binary':
         with open(pcd_path, 'rb') as f:
             for _ in range(headers['data_start']):
                 _ = f.readline()
-            dtype_list = [(name, type_size_map[(field_type, size)]) for name, field_type, size in
-                          zip(headers["FIELDS"], headers['TYPE'], headers["SIZE"])]
-            dt = np.dtype(dtype_list)
             data = np.fromfile(f, dtype=dt)
 
         names = headers["FIELDS"]
@@ -77,12 +76,32 @@ def read_pcd(pcd_path):
         for old_name, new_name in zip(names, new_names):
             data.dtype.names = [name.replace(old_name, new_name) for name in data.dtype.names]
 
-        pc_points = np.zeros((headers['POINTS'], len(new_names)), dtype=np.float32)
+        pc_points = np.zeros((headers['POINTS'],), dtype=dt)
         for i, name in enumerate(data.dtype.names):
-            pc_points[:, i] = data[name]
+            pc_points[name] = data[name]
+        pc_points = np.array([list(item) for item in pc_points])
     elif headers['DATA'] == 'binary_compressed':
-        # TODO: binary_compressed
-        raise AbavaNotImplementException('Temporarily unable to read binary_compressed data.')
+        with open(pcd_path, 'rb') as f:
+            for _ in range(headers['data_start']):
+                _ = f.readline()
+
+            compressed_size = np.frombuffer(f.read(4), dtype=np.uint32)[0]
+            decompressed_size = np.frombuffer(f.read(4), dtype=np.uint32)[0]
+            compressed_data = f.read(compressed_size)
+
+            decompressed_data = lzf.decompress(compressed_data, decompressed_size)
+
+        pc_points = np.empty(int(headers['WIDTH'][0]), dtype=dt)
+
+        buffer = memoryview(decompressed_data)
+
+        for name in dt.names:
+            itemsize = dt.fields[name][0].itemsize
+            bytes = itemsize * int(headers['WIDTH'][0])
+            column = np.frombuffer(buffer[:bytes], dt.fields[name][0])
+            pc_points[name] = column
+            buffer = buffer[bytes:]
+
     else:
         raise 'Unknown pcd data type.'
 
@@ -123,8 +142,8 @@ def write_pcd(points, out_path, head=None, data_mode='ascii'):
              'VIEWPOINT 0 0 0 1 0 0 0\n' \
              f'POINTS {point_num}\n' \
              f'DATA {data_mode}'
-    type_map = {('U', '1'): 'B', ('U', '2'): 'H', ('U', '4'): 'I',
-                ('F', '4'): 'f',
+    type_map = {('U', '1'): 'B', ('U', '2'): 'H', ('U', '4'): 'I', ('U', '8'): 'Q',
+                ('F', '4'): 'f', ('F', '8'): 'd',
                 ('I', '1'): 'c', ('I', '2'): 'h', ('I', '4'): 'i'}
 
     if data_mode == 'ascii':
@@ -252,7 +271,7 @@ def filter_points_in_boxes(pcd_file, boxes_list):
     return filtered_point
 
 
-def voxel_subsample_keep_intensity(pcd_path, voxel_size, intensity=None, output_path='./subsampled.pcd'):
+def voxel_subsample(pcd_path, voxel_size, intensity=None, output_path='./subsampled.pcd'):
     """
     Retain points within the intensity information threshold and downsample the remaining points based on voxels
     :param pcd_path: pcd format point cloud path
@@ -284,7 +303,7 @@ def voxel_subsample_keep_intensity(pcd_path, voxel_size, intensity=None, output_
     write_pcd(final_points, output_path, head)
 
 
-def random_subsample_keep_intensity(pcd_path, sampling_ratio, intensity, output_path='./subsampled.pcd'):
+def random_subsample(pcd_path, sampling_ratio, intensity, output_path='./subsampled.pcd'):
     """
     Retain points within the intensity information threshold and randomly downsample the remaining points
     :param pcd_path: pcd format point cloud path
