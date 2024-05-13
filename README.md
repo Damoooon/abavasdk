@@ -24,24 +24,24 @@
 
 </div>
 
-# ABAVA Data SDK | For Python
+# MOORE Data SDK | For Python
 
-Welcome to `ABAVA SDK`, an open-source Software Development Kit that forms the backbone of the ABAVA platform. Designed
-to convert data between ABAVA’s native format and widely-used, universal data structures such as COCO, YOLO, LABELME,
-KITTI, VOC, ABAVA SDK helps to streamline and simplify your data operations.
+Welcome to `MOORE SDK`, an open-source Software Development Kit that forms the backbone of the MOORE platform. Designed
+to convert data between MOORE’s native format and widely-used, universal data structures such as COCO, YOLO, LABELME,
+KITTI, VOC, MOORE SDK helps to streamline and simplify your data operations.
 
 The SDK is more than just a converter. It’s a swiss army knife of data processing tools. It comes loaded with an
 assortment of handy utility functions often used in data processing workflows, such as Calculate the area of a polygon
 or determine if a point is inside a polygon.
 
-Whether you’re moving data, cleaning data, transforming data, or just managing it, the ABAVA SDK has got you covered
+Whether you’re moving data, cleaning data, transforming data, or just managing it, the MOORE SDK has got you covered
 with powerful features that make your work simpler and easier. Built for developers, engineers and data scientists, this
 SDK aims to make your data-heavy processes more seamless and efficient.
 
-Stay tuned to get more details about the features, capabilities, and the simplicity ABAVA SDK brings to your data
+Stay tuned to get more details about the features, capabilities, and the simplicity MOORE SDK brings to your data
 operations.
 
-Learn more about ABAVA [here](https://www.abaka.ai/)!
+Learn more about ABAKA [here](https://www.abaka.ai/)!
 
 ## Overview
 
@@ -76,7 +76,7 @@ are ahead of other python third-party point cloud libraries in terms of efficien
 - Support Quaternion to Euler angle
 - Support PNP <br>
 
-[2023-07-21] ABAVA SDK v1.0.0 is released. <br>
+[2023-07-21] MOORE SDK v1.0.0 is released. <br>
 
 ## requirements
 
@@ -103,12 +103,12 @@ pip install abava-sdk
 
 ### Data Format
 
-+ [ABAVA data -> COCO data](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/export_format/coco/export_coco.py)
-+ [ABAVA data -> LABELME data](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/export_format/labelme/export_labelme.py)
-+ [ABAVA data -> VOC data](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/export_format/voc/export_voc.py)
-+ [ABAVA data -> YOLO data](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/export_format/yolo/export_yolo.py)
-+ [ABAVA data -> KITTI data](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/export_format/kitti/export_kitti.py)
-+ [ABAVA data -> MASK](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/export_format/mask/generate_mask.py)
++ [MOORE data -> COCO data](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/export_format/coco/export_coco.py)
++ [MOORE data -> LABELME data](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/export_format/labelme/export_labelme.py)
++ [MOORE data -> VOC data](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/export_format/voc/export_voc.py)
++ [MOORE data -> YOLO data](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/export_format/yolo/export_yolo.py)
++ [MOORE data -> KITTI data](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/export_format/kitti/export_kitti.py)
++ [MOORE data -> MASK](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/export_format/mask/generate_mask.py)
 
 ### Data Check
 
@@ -122,7 +122,7 @@ pip install abava-sdk
 
 ### Data Visualization
 
-+ [visual ABAVA data](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/visualize/source/visual_source.py)
++ [visual MOORE data](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/visualize/source/visual_source.py)
 + [visual COCO data](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/visualize/coco/visual_coco.py)
 + [visual LABELME data](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/visualize/labelme/visual_labelme.py)
 + [visual VOC data](https://github.com/ABAKA-AI/abavasdk/blob/main/abava/visualize/voc/visual_voc.py)
@@ -240,7 +240,7 @@ def test_pcd2bin():
     abavadata.pcd2bin(pcd_path, bin_path)
 ```
 
-Please refer to [examples.md](example/examples.md) to learn more usage about ABAVA SDK.
+Please refer to [examples.md](example/examples.md) to learn more usage about MOORE SDK.
 
 
 ## Contact Us
@@ -249,4 +249,4 @@ Please refer to [examples.md](example/examples.md) to learn more usage about ABA
 
 ## License
 
-ABAVA SDK is released under the MIT license.
+MOORE SDK is released under the MIT license.

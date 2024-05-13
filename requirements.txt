@@ -8,3 +8,4 @@ dynaconf>=3.2
 scipy
 dask
 dask-expr
+python-lzf>=0.2.4

@@ -2,6 +2,7 @@
 import math
 import re
 import struct
+import time
 
 import cv2
 import lzf
@@ -16,7 +17,6 @@ def read_pcd(pcd_path):
     :param pcd_path:
     :return:
     """
-    # global pc_points
     headers_lines = 11
     try:
         with open(pcd_path, 'r') as f:
@@ -76,10 +76,11 @@ def read_pcd(pcd_path):
         for old_name, new_name in zip(names, new_names):
             data.dtype.names = [name.replace(old_name, new_name) for name in data.dtype.names]
 
-        pc_points = np.zeros((headers['POINTS'],), dtype=dt)
+        pc_points_empty = np.zeros((headers['POINTS'],), dtype=dt)
         for i, name in enumerate(data.dtype.names):
-            pc_points[name] = data[name]
-        pc_points = np.array([list(item) for item in pc_points])
+            pc_points_empty[name] = data[name]
+        pc_points = np.array([pc_points_empty[name] for name in pc_points_empty.dtype.names])
+
     elif headers['DATA'] == 'binary_compressed':
         with open(pcd_path, 'rb') as f:
             for _ in range(headers['data_start']):
